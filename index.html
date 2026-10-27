@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Here, You Scream: New Delphi – Narration Soundboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Libre+Franklin:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #000000;
+    --white: #ffffff;
+    --red: #e10600;
+    --grey: #9a9a9a;       /* dimmed white for secondary text */
+    --line: #2a2a2a;       /* dividers */
+    --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --body: "Libre Franklin", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--black); color: var(--white); }
+  body {
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.5;
+    padding-bottom: 110px; /* room for the sticky player bar */
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- Header ---------- */
+  header { padding: 40px 0 28px; border-bottom: 3px solid var(--red); }
+  .game {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(2.6rem, 11vw, 5.2rem);
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  .game .scream { color: var(--red); }
+  .sub { margin: 14px 0 0; color: var(--grey); max-width: 52ch; }
+
+  /* ---------- Sections and tracks ---------- */
+  section { margin-top: 34px; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin: 0 0 8px;
+    letter-spacing: 0.02em;
+  }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { border-top: 1px solid var(--line); }
+  li:last-child { border-bottom: 1px solid var(--line); }
+
+  .track {
+    all: unset;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 4px;
+    cursor: pointer;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .track:hover .icon { border-color: var(--red); }
+  .track:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+
+  .icon {
+    width: 52px; height: 52px;
+    border: 2px solid var(--white);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    transition: background .15s, border-color .15s;
+  }
+  .icon svg { width: 20px; height: 20px; fill: var(--white); }
+  .icon .pause { display: none; }
+
+  .title { font-weight: 600; font-size: 1.05rem; }
+  .note { display: block; color: var(--grey); font-size: .9rem; margin-top: 2px; }
+  .time { color: var(--grey); font-size: .9rem; font-variant-numeric: tabular-nums; }
+
+  /* heard marker */
+  .heard .title::after {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+
+  /* progress line along the bottom of the active row */
+  .track::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -1px;
+    height: 3px;
+    width: calc(var(--p, 0) * 100%);
+    background: var(--red);
+  }
+
+  /* active (playing or paused) */
+  .active .icon { background: var(--red); border-color: var(--red); }
+  .active .title { color: var(--white); }
+  .playing .icon .play { display: none; }
+  .playing .icon .pause { display: block; }
+
+  /* ---------- Sticky player bar ---------- */
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: var(--black);
+    border-top: 3px solid var(--red);
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 10;
+  }
+  .bar .wrap { display: flex; align-items: center; gap: 16px; }
+  .now { flex: 1; min-width: 0; }
+  .now small { display: block; color: var(--grey); font-size: .8rem; }
+  .now strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .now.error strong { color: var(--red); white-space: normal; }
+
+  .stop {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+    background: var(--red);
+    color: var(--white);
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 4px;
+  }
+  .stop:hover { background: var(--white); color: var(--black); }
+  .stop:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+
+  .vol { display: flex; align-items: center; gap: 8px; color: var(--grey); font-size: .85rem; }
+  input[type=range] { accent-color: var(--red); width: 90px; }
+
+  footer { margin-top: 36px; color: var(--grey); font-size: .85rem; }
+  footer button {
+    all: unset; cursor: pointer; color: var(--white); text-decoration: underline;
+  }
+  footer button:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+
+  @media (max-width: 520px) {
+    .vol span { display: none; }
+    input[type=range] { width: 70px; }
+    .track { grid-template-columns: 46px 1fr auto; gap: 12px; }
+    .icon { width: 46px; height: 46px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1 class="game">Here, You <span class="scream">Scream</span>:<br>New Delphi</h1>
+    <p class="sub">Narration soundboard. Press a button when your story reaches that moment. Only one clip plays at a time.</p>
+  </header>
+
+  <main id="board"></main>
+
+  <footer>
+    Red dots mark clips you have already played. <button id="reset" type="button">Clear dots</button>
+  </footer>
+</div>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="now" id="now" aria-live="polite">
+      <small>Now playing</small>
+      <strong id="nowTitle">Nothing yet</strong>
+    </div>
+    <label class="vol"><span>Volume</span>
+      <input type="range" id="volume" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+    </label>
+    <button class="stop" id="stop" type="button">Stop</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   EDIT THIS LIST
+   - section: headings the clips are grouped under (order = order of first appearance)
+   - title:   what the button says
+   - note:    optional small line under the title (when to press it)
+   - file:    path or full URL of the audio file
+   ===================================================================== */
+const TRACKS = [
+  { section: "Opening", title: "Welcome Aboard Letter", note: "", file: "audio/welcome-aboard-letter.mp3" },
+  { section: "Opening", title: "Story Introduction",    note: "", file: "audio/story-introduction.mp3" },
+
+  { section: "Investigation", title: "Round 1", note: "", file: "audio/round-1.mp3" },
+  { section: "Investigation", title: "Round 2", note: "", file: "audio/round-2.mp3" },
+  { section: "Investigation", title: "Round 3", note: "", file: "audio/round-3.mp3" },
+  { section: "Investigation", title: "Round 4", note: "", file: "audio/round-4.mp3" },
+
+  { section: "???", title: "For Brynia", note: "", file: "audio/for-brynia.mp3" },
+  { section: "???", title: "For Larch",  note: "", file: "audio/for-larch.mp3" },
+  { section: "???", title: "For Noctis", note: "", file: "audio/for-noctis.mp3" },
+  { section: "???", title: "For Sable",  note: "", file: "audio/for-sable.mp3" },
+  { section: "???", title: "For Tawny",  note: "", file: "audio/for-tawny.mp3" },
+
+  { section: "Endings", title: "Epilogue A", note: "", file: "audio/epilogue-a.mp3" },
+  { section: "Endings", title: "Epilogue B", note: "", file: "audio/epilogue-b.mp3" }
+];
+/* ===================================================================== */
+
+const board   = document.getElementById("board");
+const nowBox  = document.getElementById("now");
+const nowTitle= document.getElementById("nowTitle");
+const volume  = document.getElementById("volume");
+const stopBtn = document.getElementById("stop");
+const resetBtn= document.getElementById("reset");
+
+const STORE_KEY = "hys-new-delphi-heard";
+const audio = new Audio();
+audio.preload = "none";
+let current = null; // index of the active track
+
+/* --- storage helpers (safe if the browser blocks storage inside an iframe) --- */
+function loadHeard() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch (e) { return []; }
+}
+function saveHeard(list) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch (e) {}
+}
+let heard = loadHeard();
+
+const PLAY  = '<svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>';
+const PAUSE = '<svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+
+const fmt = s => {
+  if (!isFinite(s)) return "";
+  const m = Math.floor(s / 60), r = Math.floor(s % 60);
+  return m + ":" + String(r).padStart(2, "0");
+};
+
+/* --- build the board --- */
+const rows = [];
+const sections = [];
+TRACKS.forEach((t, i) => {
+  let s = sections.find(x => x.name === t.section);
+  if (!s) { s = { name: t.section, items: [] }; sections.push(s); }
+  s.items.push(i);
+});
+
+sections.forEach(s => {
+  const sec = document.createElement("section");
+  const h = document.createElement("h2");
+  h.textContent = s.name;
+  const ul = document.createElement("ul");
+
+  s.items.forEach(i => {
+    const t = TRACKS[i];
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "track";
+    btn.innerHTML =
+      '<span class="icon">' + PLAY + PAUSE + '</span>' +
+      '<span><span class="title"></span><span class="note"></span></span>' +
+      '<span class="time"></span>';
+    btn.querySelector(".title").textContent = t.title;
+    const note = btn.querySelector(".note");
+    if (t.note) note.textContent = t.note; else note.remove();
+    btn.addEventListener("click", () => toggle(i));
+    li.appendChild(btn);
+    ul.appendChild(li);
+    rows[i] = { li, btn, time: btn.querySelector(".time") };
+    if (heard.includes(t.file)) btn.classList.add("heard");
+  });
+
+  sec.appendChild(h);
+  sec.appendChild(ul);
+  board.appendChild(sec);
+});
+
+/* --- playback --- */
+function setState(i, state) { // state: "playing" | "paused" | null
+  const b = rows[i].btn;
+  b.classList.toggle("active", !!state);
+  b.classList.toggle("playing", state === "playing");
+}
+
+function clearRow(i) {
+  if (i === null) return;
+  setState(i, null);
+  rows[i].btn.style.setProperty("--p", 0);
+  rows[i].time.textContent = "";
+}
+
+function setNow(text, isError) {
+  nowTitle.textContent = text;
+  nowBox.classList.toggle("error", !!isError);
+}
+
+function toggle(i) {
+  if (current === i) {
+    if (audio.paused) audio.play(); else audio.pause();
+    return;
+  }
+  clearRow(current);
+  current = i;
+  audio.src = TRACKS[i].file;
+  audio.currentTime = 0;
+  setNow(TRACKS[i].title, false);
+  setState(i, "playing");
+  audio.play().catch(() => {});
+}
+
+function stopAll() {
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+  clearRow(current);
+  current = null;
+  setNow("Nothing yet", false);
+}
+
+audio.addEventListener("play",  () => { if (current !== null) setState(current, "playing"); });
+audio.addEventListener("pause", () => { if (current !== null && !audio.ended) setState(current, "paused"); });
+
+audio.addEventListener("playing", () => {
+  if (current === null) return;
+  const f = TRACKS[current].file;
+  if (!heard.includes(f)) { heard.push(f); saveHeard(heard); }
+  rows[current].btn.classList.add("heard");
+});
+
+audio.addEventListener("timeupdate", () => {
+  if (current === null || !audio.duration) return;
+  rows[current].btn.style.setProperty("--p", audio.currentTime / audio.duration);
+  rows[current].time.textContent = fmt(audio.duration - audio.currentTime);
+});
+
+audio.addEventListener("loadedmetadata", () => {
+  if (current !== null) rows[current].time.textContent = fmt(audio.duration);
+});
+
+audio.addEventListener("ended", () => {
+  const i = current;
+  current = null;
+  clearRow(i);
+  setNow("Nothing yet", false);
+});
+
+audio.addEventListener("error", () => {
+  if (current === null) return;
+  const t = TRACKS[current].title;
+  clearRow(current);
+  current = null;
+  setNow("Could not load \u201C" + t + "\u201D. Check the file path.", true);
+});
+
+stopBtn.addEventListener("click", stopAll);
+volume.addEventListener("input", () => { audio.volume = parseFloat(volume.value); });
+
+resetBtn.addEventListener("click", () => {
+  heard = [];
+  saveHeard(heard);
+  rows.forEach(r => r.btn.classList.remove("heard"));
+});
+</script>
+</body>
+</html>
