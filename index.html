@@ -145,17 +145,22 @@
   input[type=range]::-moz-range-track { height: 4px; background: var(--white); border-radius: 2px; }
   input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--red); border: 2px solid var(--white); }
 
-  footer { margin-top: 36px; color: var(--grey); font-size: .85rem; }
-  footer button {
+  .info { margin: 10px 0 0; color: var(--grey); font-size: .85rem; }
+  .info button {
     all: unset; cursor: pointer; color: var(--white); text-decoration: underline;
   }
-  footer button:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+  .info button:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+
+  /* ambience */
+  .amb-vol { display: flex; align-items: center; gap: 10px; padding: 0 4px 14px 70px; color: var(--grey); font-size: .85rem; }
+  .amb-vol input[type=range] { width: 160px; }
 
   @media (max-width: 520px) {
     .vol span { display: none; }
     input[type=range] { width: 70px; }
     .track { grid-template-columns: 46px 1fr auto; gap: 12px; }
     .icon { width: 46px; height: 46px; }
+    .amb-vol { padding-left: 62px; }
   }
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; }
@@ -167,14 +172,27 @@
 <div class="wrap">
   <header>
     <h1 class="game">Here, You <span class="scream">Scream</span>:<br>New Delphi</h1>
-    <p class="sub">Narration soundboard. Press a button when your story reaches that moment. Only one clip plays at a time.</p>
+    <p class="sub">Press a button when your story reaches that moment. Only one narration clip plays at a time.</p>
+    <p class="info">Red dots mark clips you have already played. <button id="reset" type="button">Clear dots</button></p>
   </header>
 
-  <main id="board"></main>
+  <section class="ambience">
+    <h2>Ambience</h2>
+    <ul>
+      <li>
+        <button class="track" id="ambBtn" type="button">
+          <span class="icon"><svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg><svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></span>
+          <span><span class="title">Space Ambience</span><span class="note" id="ambNote">Loops underneath the narration. Stop does not affect it.</span></span>
+          <span class="time" id="ambTime"></span>
+        </button>
+        <label class="amb-vol"><span>Ambience volume</span>
+          <input type="range" id="ambVolume" min="0" max="1" step="0.05" value="0.4" aria-label="Ambience volume">
+        </label>
+      </li>
+    </ul>
+  </section>
 
-  <footer>
-    Red dots mark clips you have already played. <button id="reset" type="button">Clear dots</button>
-  </footer>
+  <main id="board"></main>
 </div>
 
 <div class="bar">
@@ -183,8 +201,8 @@
       <small>Now playing</small>
       <strong id="nowTitle">Nothing yet</strong>
     </div>
-    <label class="vol"><span>Volume</span>
-      <input type="range" id="volume" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+    <label class="vol"><span>Narration volume</span>
+      <input type="range" id="volume" min="0" max="1" step="0.05" value="1" aria-label="Narration volume">
     </label>
     <button class="stop" id="stop" type="button">Stop</button>
   </div>
@@ -373,6 +391,32 @@ resetBtn.addEventListener("click", () => {
   saveHeard(heard);
   rows.forEach(r => r.btn.classList.remove("heard"));
 });
+
+/* --- looping ambience (separate player, plays under the narration) --- */
+const AMBIENCE_FILE = "Audio/Space Ambience.wav";
+const amb       = new Audio(AMBIENCE_FILE);
+amb.loop        = true;
+amb.preload     = "none";
+amb.volume      = 0.4;
+
+const ambBtn    = document.getElementById("ambBtn");
+const ambNote   = document.getElementById("ambNote");
+const ambVolume = document.getElementById("ambVolume");
+const ambNoteDefault = ambNote.textContent;
+
+ambBtn.addEventListener("click", () => {
+  ambNote.textContent = ambNoteDefault;
+  ambNote.style.color = "";
+  if (amb.paused) amb.play().catch(() => {}); else amb.pause();
+});
+amb.addEventListener("play",  () => { ambBtn.classList.add("active", "playing"); });
+amb.addEventListener("pause", () => { ambBtn.classList.remove("active", "playing"); });
+amb.addEventListener("error", () => {
+  ambBtn.classList.remove("active", "playing");
+  ambNote.textContent = "Could not load the ambience file. Check the file path.";
+  ambNote.style.color = "var(--red)";
+});
+ambVolume.addEventListener("input", () => { amb.volume = parseFloat(ambVolume.value); });
 </script>
 </body>
 </html>
