@@ -393,7 +393,9 @@ resetBtn.addEventListener("click", () => {
 });
 
 /* --- looping ambience (separate player, plays under the narration) --- */
-const AMBIENCE_FILE = "Audio/Space Ambience.ogg";
+const AMBIENCE_FILE = document.createElement("audio").canPlayType('audio/ogg; codecs="vorbis"')
+  ? "Audio/Space Ambience.ogg"
+  : "Audio/Space Ambience.mp3";
 const amb       = new Audio(AMBIENCE_FILE);
 amb.loop        = true;
 amb.preload     = "none";
